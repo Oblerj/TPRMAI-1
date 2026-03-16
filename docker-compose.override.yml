@@ -1,0 +1,11 @@
+# Docker Compose override for local development
+# This file is automatically loaded with docker-compose.yml
+# Add any local-only configurations here
+
+version: '3.8'
+
+services:
+  mock-oidc:
+    # Enable verbose logging for debugging
+    environment:
+      LOG_LEVEL: DEBUG

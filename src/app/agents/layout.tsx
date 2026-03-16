@@ -1,11 +1,14 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+import { requireAuth } from '@/lib/auth-guard'
 
-export default function AgentsLayout({
+export default async function AgentsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  await requireAuth()
+
   return (
     <div className="flex h-screen">
       <Sidebar />

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication Testing Instructions</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .step {
+            background: #f0f8ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .important {
+            background: #fff3cd;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Authentication Testing Guide</h1>
+    
+    <div class="important">
+        <strong>⚠️ IMPORTANT:</strong> You must clear browser cookies or use Incognito/Private windows between each user test to avoid PKCE cookie conflicts.
+    </div>
+
+    <h2>Testing Each User (Method 1: Clear Cookies)</h2>
+    
+    <div class="step">
+        <strong>Step 1: Test Mock Admin</strong>
+        <ol>
+            <li>Open <code>http://localhost:3000</code> in your browser</li>
+            <li>Click "Sign In" button</li>
+            <li>Click "Mock Admin" button on OIDC page</li>
+            <li>✅ Should redirect to dashboard successfully</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <strong>Step 2: Clear Cookies Before Next Test</strong>
+        <ol>
+            <li>Open browser DevTools (F12 or Cmd+Option+I)</li>
+            <li>Go to "Application" or "Storage" tab</li>
+            <li>Find "Cookies" → <code>http://localhost:3000</code></li>
+            <li>Click "Clear all cookies" or delete all cookies</li>
+            <li>Also clear <code>http://localhost:10090</code> cookies if present</li>
+        </ol>
+        <p><strong>Or use keyboard shortcut:</strong></p>
+        <ul>
+            <li>Chrome/Edge: Ctrl+Shift+Delete (Windows) or Cmd+Shift+Delete (Mac)</li>
+            <li>Select "Cookies" only</li>
+            <li>Time range: "Last hour"</li>
+            <li>Click "Clear data"</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <strong>Step 3: Test Mock Analyst</strong>
+        <ol>
+            <li>Refresh the page or go to <code>http://localhost:3000</code></li>
+            <li>Click "Sign In" button</li>
+            <li>Click "Mock Analyst" button on OIDC page</li>
+            <li>✅ Should redirect to dashboard successfully</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <strong>Step 4: Repeat for Remaining Users</strong>
+        <ul>
+            <li>Clear cookies again</li>
+            <li>Test Mock Viewer</li>
+            <li>Clear cookies again</li>
+            <li>Test Mock Vendor</li>
+        </ul>
+    </div>
+
+    <h2>Testing Each User (Method 2: Incognito Windows)</h2>
+    
+    <div class="step">
+        <strong>Easier Method - Use 4 Separate Incognito Windows</strong>
+        <ol>
+            <li>Open 4 separate Incognito/Private windows (Ctrl+Shift+N or Cmd+Shift+N)</li>
+            <li>In Window 1: Test Mock Admin</li>
+            <li>In Window 2: Test Mock Analyst</li>
+            <li>In Window 3: Test Mock Viewer</li>
+            <li>In Window 4: Test Mock Vendor</li>
+        </ol>
+        <p>Each incognito window has isolated cookies, so no interference!</p>
+    </div>
+
+    <h2>Why This Is Necessary</h2>
+    
+    <div class="important">
+        <p><strong>The PKCE Flow Issue:</strong></p>
+        <p>When you authenticate as Mock Admin, NextAuth creates encrypted PKCE cookies for that session. When you try to authenticate as a different user WITHOUT clearing cookies first, the old PKCE cookies from the Admin session conflict with the new authentication attempt, causing a "pkceCodeVerifier value could not be parsed" error.</p>
+        <p>This is expected OAuth/OIDC behavior - each authentication flow should start with a clean cookie state.</p>
+    </div>
+
+    <h2>Expected Results</h2>
+    
+    <div class="success">
+        <strong>✅ Success Indicators:</strong>
+        <ul>
+            <li>All 4 users redirect to <code>/dashboard</code> after clicking their button</li>
+            <li>No "Server error" messages appear</li>
+            <li>Dashboard shows user's name and role correctly</li>
+            <li>Logs show: <code>[Auth Profile] { sub: 'mock-analyst', ... }</code></li>
+        </ul>
+    </div>
+
+    <h2>Monitoring Logs</h2>
+    
+    <div class="step">
+        <p>Open terminal and run:</p>
+        <code>tail -f /tmp/nextjs.log</code>
+        <p>Watch for successful authentication:</p>
+        <pre>
+[Auth Profile] {
+  sub: 'mock-analyst',
+  email: 'analyst@app.local',
+  name: 'Mock Analyst',
+  role: 'ANALYST'
+}
+GET /dashboard 200
+        </pre>
+    </div>
+
+    <h2>Quick Test Script</h2>
+    
+    <div class="step">
+        <p>Test all users quickly using separate incognito windows:</p>
+        <ol>
+            <li>Open 1st incognito window → Test Admin → Leave open</li>
+            <li>Open 2nd incognito window → Test Analyst → Leave open</li>
+            <li>Open 3rd incognito window → Test Viewer → Leave open</li>
+            <li>Open 4th incognito window → Test Vendor → Leave open</li>
+        </ol>
+        <p>All 4 should now be simultaneously logged in as different users in different windows!</p>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Mock OIDC Provider for local development
+  # Python FastAPI implementation following make-it pattern
+  mock-oidc:
+    build:
+      context: ./mock-oidc
+      dockerfile: Dockerfile
+    container_name: tprm-mock-oidc
+    ports:
+      - "3007:10090"
+    environment:
+      MOCK_OIDC_EXTERNAL_BASE_URL: "http://localhost:3007"
+      MOCK_OIDC_INTERNAL_BASE_URL: "http://mock-oidc:10090"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:10090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL database (optional - for local dev with real DB)
+  # Uncomment if you want to use PostgreSQL instead of SQLite
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: tprm-postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: tprm_user
+  #     POSTGRES_PASSWORD: tprm_dev_password
+  #     POSTGRES_DB: tprm_db
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U tprm_user -d tprm_db"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+# volumes:
+#   postgres_data:
+
+networks:
+  default:
+    name: tprm-network

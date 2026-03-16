@@ -15,20 +15,73 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
-  password      String?
-  role          String    @default("ANALYST") // ADMIN, ANALYST, VIEWER, VENDOR
+  password      String?   // Deprecated: kept for migration, use OIDC instead
+  roleId        String?   // Foreign key to Role table
   department    String?
   isActive      Boolean   @default(true)
   lastLogin     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // OIDC fields
+  oidcSubject   String?   @unique // OIDC subject claim (sub)
+  oidcProvider  String?   // e.g., "azure", "mock-oidc"
+
   // Relations
+  role          Role?     @relation(fields: [roleId], references: [id])
   auditTrails   AuditTrail[]
   sessions      Session[]
   accounts      Account[]
 
   @@map("users")
+}
+
+// ============================================
+// RBAC - ROLES & PERMISSIONS
+// ============================================
+
+model Role {
+  id          String    @id @default(cuid())
+  name        String    @unique // ADMIN, ANALYST, VIEWER, VENDOR
+  description String?
+  isSystem    Boolean   @default(false) // System roles cannot be deleted
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String    @id @default(cuid())
+  resource    String    // e.g., "vendors", "risk_assessments", "reports"
+  action      String    // CREATE, READ, UPDATE, DELETE
+  description String?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  roles       RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String    @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime  @default(now())
+
+  // Relations
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
 }
 
 model Account {
@@ -351,4 +404,46 @@ model AuditTrail {
 
   @@index([entityType, entityId])
   @@map("audit_trail")
+}
+
+// ============================================
+// PROMPT MANAGEMENT (Tier 3)
+// ============================================
+
+model PromptTemplate {
+  id          String    @id @default(cuid())
+  name        String    @unique // e.g., "vera_system_prompt", "sara_finding_analysis"
+  agentName   String    // VERA, CARA, DORA, SARA, RITA, MARS
+  category    String    // SYSTEM, USER, ANALYSIS, REPORT
+  description String?   // Business-friendly description
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  versions    PromptVersion[]
+
+  @@index([agentName])
+  @@map("prompt_templates")
+}
+
+model PromptVersion {
+  id              String    @id @default(cuid())
+  templateId      String
+  version         Int       // Incrementing version number
+  content         String    // The actual prompt text
+  variables       String?   // JSON array of variable names: ["vendorName", "riskTier"]
+  isPublished     Boolean   @default(false) // Only published versions are used
+  publishedAt     DateTime?
+  publishedBy     String?   // User who published
+  changeNote      String?   // Description of what changed
+  createdAt       DateTime  @default(now())
+  createdBy       String?   // User who created this version
+
+  // Relations
+  template        PromptTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([templateId, isPublished])
+  @@map("prompt_versions")
 }
